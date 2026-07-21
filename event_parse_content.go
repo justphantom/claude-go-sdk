@@ -70,12 +70,10 @@ func stringifyContent(raw json.RawMessage) string {
 	if len(raw) == 0 {
 		return ""
 	}
-	// Try string first.
 	var s string
 	if json.Unmarshal(raw, &s) == nil {
 		return s
 	}
-	// Try an array of text blocks.
 	var blocks []struct {
 		Type string `json:"type"`
 		Text string `json:"text"`
@@ -89,7 +87,6 @@ func stringifyContent(raw json.RawMessage) string {
 		}
 		return b.String()
 	}
-	// Fallback: raw bytes.
 	return strings.TrimSpace(string(raw))
 }
 
