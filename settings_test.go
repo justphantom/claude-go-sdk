@@ -123,7 +123,9 @@ func TestListSettings_CacheHitsWithinTTL(t *testing.T) {
 	}
 	// Add a file after the first scan; if caching works, the second call
 	// must NOT see it.
-	os.WriteFile(filepath.Join(dir, "new-settings.json"), []byte("{}"), 0o600)
+	if err := os.WriteFile(filepath.Join(dir, "new-settings.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	second, err := c.ListSettings(context.Background())
 	if err != nil {
@@ -148,7 +150,9 @@ func TestListSettings_CacheExpiresAfterTTL(t *testing.T) {
 		t.Fatalf("first scan = %v, want 1 file", first)
 	}
 
-	os.WriteFile(filepath.Join(dir, "kimi-settings.json"), []byte("{}"), 0o600)
+	if err := os.WriteFile(filepath.Join(dir, "kimi-settings.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	time.Sleep(1100 * time.Millisecond)
 
 	second, err := c.ListSettings(context.Background())
@@ -169,7 +173,9 @@ func TestListSettings_CacheDisabledWhenTTLNegative(t *testing.T) {
 	if _, err := c.ListSettings(context.Background()); err != nil {
 		t.Fatalf("first: %v", err)
 	}
-	os.WriteFile(filepath.Join(dir, "kimi-settings.json"), []byte("{}"), 0o600)
+	if err := os.WriteFile(filepath.Join(dir, "kimi-settings.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	got, err := c.ListSettings(context.Background())
 	if err != nil {
 		t.Fatalf("second: %v", err)
