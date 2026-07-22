@@ -75,6 +75,13 @@ type Event struct {
 	IsError    bool
 	NumTurns   int
 
+	// StopReason is the model's stop_reason from the result line
+	// (e.g. "end_turn"); DurationAPIMs is the API-only wall time
+	// (duration_api_ms), complementing DurationMs which includes CLI
+	// overhead.
+	StopReason    string
+	DurationAPIMs int64
+
 	// Token counts from a result line. InputTokens/OutputTokens are the
 	// non-cache breakdown; CacheRead/CacheCreation carry the prompt-cache
 	// hits and writes so callers can record the full per-session picture.

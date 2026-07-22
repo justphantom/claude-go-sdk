@@ -24,6 +24,11 @@ type lineHead struct {
 	NumTurns   int             `json:"num_turns"`
 	Usage      lineUsage       `json:"usage"`
 	Model      string          `json:"model"`
+
+	// Result-line metadata from CLI 2.x. DurationAPIMs is the API-only
+	// wall time; StopReason is the model's stop reason.
+	StopReason    string `json:"stop_reason"`
+	DurationAPIMs int64  `json:"duration_api_ms"`
 }
 
 // lineUsage carries token accounting on a result line.
@@ -82,6 +87,8 @@ func parseEvent(line string) ([]Event, error) {
 			IsError:       head.IsError,
 			CostUSD:       head.CostUSD,
 			DurationMs:    head.DurationMs,
+			StopReason:    head.StopReason,
+			DurationAPIMs: head.DurationAPIMs,
 			NumTurns:      head.NumTurns,
 			InputTokens:   head.Usage.InputTokens,
 			OutputTokens:  head.Usage.OutputTokens,
