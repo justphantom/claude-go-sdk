@@ -1,4 +1,8 @@
+//go:build linux || darwin
+
 package claude
+
+import "strings"
 
 // EventType constants for the flat Type field carried by Event. These
 // collapse the Claude Code stream-json line "type" plus the per-block
@@ -93,4 +97,14 @@ type Event struct {
 	// Raw is retained for debug logging and parsing sub-fields (e.g.
 	// subagent events) by the caller.
 	Raw string
+}
+
+// IsStaleSession reports whether e is the CLI's "session no longer
+// exists" terminal error (result line, is_error, "No conversation found
+// with session ID: …"). Centralised here so consumers don't hand-roll
+// string matching — the CLI may reword the message, and only this
+// substring is checked so a fix applies in one place.
+func IsStaleSession(e Event) bool {
+	return e.Type == EventResult && e.IsError &&
+		strings.Contains(e.Result, "No conversation found")
 }
