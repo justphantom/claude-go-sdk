@@ -47,13 +47,14 @@ func main() {
 | 符号 | 说明 |
 |---|---|
 | `Options` | 构造参数：CLIPath（默认 `"claude"`）、PermissionMode（默认 `"acceptEdits"`，CLI 的 `default` 模式在 `-p` 下会挂起交互提示）、AppendSystemPrompt、MaxConcurrent（≤0 → 4）、SettingsDir（默认 `~/.claude`，支持 `~` 展开）、SettingsCacheTTL（0 → 1h；<0 → 禁用缓存）、Logger（nil → 静默） |
-| `RunOptions` | 单轮参数：Prompt、Directory、SessionID（非空 → `--resume`）、Model、PermissionMode / EffortLevel / SettingsFile（每轮覆盖，空用 Client 默认）、LineSink（逐行旁路原始 stream-json） |
-| `Event` | 扁平事件结构体，26 个导出字段，含 `Raw`（原始行） |
+| `RunOptions` | 单轮参数：Prompt、Directory、SessionID（非空 → `--resume`）、Model、PermissionMode / EffortLevel / SettingsFile（每轮覆盖，空用 Client 默认）、MaxTurns（>0 → `--max-turns`，失控/成本护栏）、AllowedTools / DisallowedTools（原样透传 `--allowedTools` / `--disallowedTools`）、AddDirs（每项一个 `--add-dir`，放开 cwd 外目录访问）、LineSink（逐行旁路原始 stream-json） |
+| `Event` | 扁平事件结构体，含 `StopReason` / `DurationAPIMs`（result 行元数据）与 `Raw`（原始行） |
 | `New(opts Options) *Client` | 构造客户端 |
 | `(*Client) Run(ctx, RunOptions) (<-chan Event, error)` | 启动一轮，返回事件通道 |
 | `(*Client) IsReady(ctx) error` | `<cli> --version` 探活（10s 超时） |
 | `(*Client) ListSettings(ctx) ([]string, error)` | 扫描 settings 目录（带 TTL 缓存） |
 | `ParseEvent(line string) ([]Event, error)` | 解析单行 stream-json（回放归档用） |
+| `IsStaleSession(e Event) bool` | 判定失效会话终态错误（result + is_error + "No conversation found"），子串匹配集中于此，CLI 改文案只修一处 |
 | 常量 | `EventSystem/EventText/EventThinking/EventToolUse/EventToolResult/EventResult/EventError/EventTaskStarted/EventTaskProgress/EventTaskNotification`、`SubtypeInit`、`PermissionModeAcceptEdits/PermissionModePlan/PermissionModeBypassPermissions` |
 
 ## 事件模型
@@ -72,12 +73,19 @@ func main() {
 
 懒会话：首轮 `SessionID` 留空，从 `system/init` 事件捕获 `session_id`
 由调用方持久化，后续轮次经 `RunOptions.SessionID` 传 `--resume`。
-失效会话（"No conversation found"）的重试策略由消费侧决定，SDK 不内置。
+失效会话（`IsStaleSession` 判定）的重试策略由消费侧决定，SDK 不内置。
+
+## 兼容政策
+
+- 本 SDK 遵循 semver；v1 前 minor 版本可能新增导出符号/字段，但绝不删改既有导出。
+- Schema 漂移策略：未知 line/block 类型原样转发、`Raw` 保留原始行、result 行有宽松二次解析兜底——CLI 升级不产生硬失败。
+- String 冻结：`Event.Type`/`Subtype`、`PermissionMode`、`EffortLevel` 等保持 string + 常量的设计已冻结，不会引入命名类型（下游可安全按字符串常量比较）。
 
 ## 平台约束
 
 取消依赖 `Setpgid` + `syscall.Kill(-pid)`（Unix 专有），仅支持
-linux/darwin，不做 Windows 抽象。运行机器须安装 Claude Code CLI ≥ 2.x。
+linux/darwin，构建期强制（`//go:build linux || darwin`），不做 Windows
+抽象。运行机器须安装 Claude Code CLI ≥ 2.x。
 
 ## 集成测试
 
