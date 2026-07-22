@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -129,6 +130,20 @@ type RunOptions struct {
 	// EffortLevel optionally sets the Claude --effort level for this
 	// turn. Empty falls back to Claude's default effort behavior.
 	EffortLevel string
+	// MaxTurns, when >0, is passed as --max-turns: the CLI aborts the
+	// turn after N agent steps. Runaway/cost guard — without it a
+	// misbehaving agent can loop tool calls indefinitely.
+	MaxTurns int
+	// AllowedTools, when non-empty, is passed verbatim as
+	// --allowedTools (the CLI's own list syntax, e.g. "Bash,Read").
+	AllowedTools string
+	// DisallowedTools, when non-empty, is passed verbatim as
+	// --disallowedTools (same list syntax).
+	DisallowedTools string
+	// AddDirs appends one --add-dir per entry, granting the CLI access
+	// to directories outside the working directory (the CLI sandboxes
+	// tool file access to cwd by default, blocking outside paths).
+	AddDirs []string
 	// SettingsFile optionally sets the Claude --settings file path for
 	// this turn. Empty means "not set". The caller is responsible for any
 	// env-var expansion before passing the path here; the client appends
@@ -234,6 +249,18 @@ func (c *Client) buildCommand(ctx context.Context, opts RunOptions) (*exec.Cmd, 
 	}
 	if opts.EffortLevel != "" {
 		args = append(args, "--effort", opts.EffortLevel)
+	}
+	if opts.MaxTurns > 0 {
+		args = append(args, "--max-turns", strconv.Itoa(opts.MaxTurns))
+	}
+	if opts.AllowedTools != "" {
+		args = append(args, "--allowedTools", opts.AllowedTools)
+	}
+	if opts.DisallowedTools != "" {
+		args = append(args, "--disallowedTools", opts.DisallowedTools)
+	}
+	for _, dir := range opts.AddDirs {
+		args = append(args, "--add-dir", dir)
 	}
 	if opts.SettingsFile != "" {
 		args = append(args, "--settings", opts.SettingsFile)
