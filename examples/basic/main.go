@@ -1,3 +1,5 @@
+//go:build linux || darwin
+
 // Command basic runs a single Claude turn and prints the event stream.
 package main
 

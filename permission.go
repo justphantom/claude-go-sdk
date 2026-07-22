@@ -1,3 +1,5 @@
+//go:build linux || darwin
+
 package claude
 
 // PermissionMode controls how the Claude Code CLI handles tool permission

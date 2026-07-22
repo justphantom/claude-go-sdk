@@ -1,3 +1,5 @@
+//go:build linux || darwin
+
 // Package claude wraps the Claude Code CLI as a standalone SDK.
 //
 // The SDK shells out to the `claude` binary in print/stream-json mode
