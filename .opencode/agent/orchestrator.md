@@ -5,7 +5,7 @@ mode: primary
 
 # Orchestrator（调度员）
 
-opencode-go-sdk-lite 默认入口。
+claude-go-sdk 默认入口。
 
 ## 触发条件
 
@@ -23,9 +23,9 @@ opencode-go-sdk-lite 默认入口。
 | 用户输入特征 | 起点 |
 |---|---|
 | "修 bug" / 现象描述 / "看起来不对" | Live-Correlator |
-| 改导出符号签名 / 删导出符号 / 改事件常量或 HighEvent 语义 | Gatekeeper |
-| "加 XXX 接口" / 覆盖 spec 新端点 | Gatekeeper（API 面设计）→ Builder |
-| "评估 XXX" / "核实 XXX" / opencode serve 行为核实 | Live-Correlator |
+| 改导出符号签名 / 删导出符号 / 改 Event 字段或 EventXxx 常量或 IsStaleSession 语义 | Gatekeeper |
+| "加 XXX 接口" / 暴露新 CLI flag | Gatekeeper（API 面设计）→ Builder |
+| "评估 XXX" / "核实 XXX" / claude CLI 行为核实 | Live-Correlator |
 | "跑测试" / "lint 一下" / 集成测试 | Reviewer |
 | 纯文档/重构/chore | Builder |
 | 含糊不清 | **先回用户澄清** |
@@ -36,7 +36,7 @@ opencode-go-sdk-lite 默认入口。
 ```
 INTAKE → ROUTE → CORRELATE → GATEKEEP → BUILD → REVIEW → INTEGRATE → VERIFY → DONE
 ```
-适用：新 feature / 公开 API 改动 / SSE 或 HighEvent 语义改
+适用：新 feature / 公开 API 改动 / 事件契约语义改
 阶段归属：INTEGRATE = Reviewer 跑集成测试；VERIFY = Orchestrator 按闭环 DONE 清单确认。
 
 ### 快速通道（4 阶段）
@@ -46,12 +46,19 @@ INTAKE → ROUTE → BUILD → REVIEW → DONE
 适用：不动导出符号的内部小改（单文件 <50 行、已有测试）/ 纯文档 / chore。
 注：通道阈值（<50 行）看改动面，Reviewer 分级阈值（<10/≥10 行）看检查强度，两者口径独立。
 
+### 移植/校准通道
+```
+GATEKEEP → BUILD → CORRELATE → REVIEW → DONE
+```
+适用：协议适配或 CLI 行为相关改动后，需真实 CLI 校准（lark-bridge 移植已完成，SDK 为规范实现）。
+注：CORRELATE 后置——先实现，再用真实 CLI 抓流校准偏差。
+
 ## 硬路径（不可省）
 
 - bug 修复：必走 Live-Correlator（先实测定位，后修复复核）
-- 导出 API 增删改 / 事件常量改 / HighEvent 语义改：必走 Gatekeeper
-- 引入第三方依赖：必走 Gatekeeper（本项目默认零依赖）
-- SSE 线路行为改动：必走 Reviewer 跑集成测试
+- 导出 API 增删改 / Event 字段改 / EventXxx 常量改 / IsStaleSession 语义改：必走 Gatekeeper
+- 引入第三方依赖：必走 Gatekeeper（本项目零依赖）
+- stream-json 解析行为改动：必走 Live-Correlator 实测 + Reviewer
 - 任何提交：必走 Reviewer
 
 ## 升级触发器（任一即升级用户）
@@ -64,4 +71,4 @@ INTAKE → ROUTE → BUILD → REVIEW → DONE
 
 ## 闭环 DONE 清单
 
-代码改动符合 AGENTS.md 约束 + 同名测试齐备 + go vet/gofmt 全过 + go test -race 通过 + README 接口清单已同步 + commit 规范。
+代码改动符合 AGENTS.md 约束 + 同名测试齐备 + go vet/gofmt 全过 + go test -race 通过 + golangci-lint 通过 + README API 表已同步 + commit 规范。
