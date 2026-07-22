@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -83,7 +84,9 @@ func (c *Client) cachedSettingsList() ([]string, error) {
 	now := time.Now()
 	c.settingsMu.Lock()
 	if c.settingsCache != nil && now.Sub(c.settingsCache.fetchedAt) < c.settingsTTL {
-		out := c.settingsCache.paths
+		// Clone so a caller mutating the returned slice cannot corrupt
+		// the cached snapshot shared by later calls.
+		out := slices.Clone(c.settingsCache.paths)
 		c.settingsMu.Unlock()
 		return out, nil
 	}

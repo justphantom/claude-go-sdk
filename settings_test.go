@@ -200,3 +200,34 @@ func TestListSettings_EmptyDirIsNotError(t *testing.T) {
 		t.Errorf("expected nil for no matches, got %v", got)
 	}
 }
+
+// TestListSettings_CacheHitReturnsCopy verifies mutating a slice returned by
+// a cache hit does not corrupt the cached snapshot served to later calls.
+func TestListSettings_CacheHitReturnsCopy(t *testing.T) {
+	dir := writeSettingsFiles(t, "settings.json", "kimi-settings.json")
+	c := New(Options{SettingsDir: dir, SettingsCacheTTL: time.Hour})
+
+	first, err := c.ListSettings(context.Background())
+	if err != nil {
+		t.Fatalf("first ListSettings: %v", err)
+	}
+	if len(first) != 2 {
+		t.Fatalf("first scan = %v, want 2 files", first)
+	}
+	want := slices.Clone(first)
+
+	// Second call is a cache hit; corrupt the returned slice.
+	second, err := c.ListSettings(context.Background())
+	if err != nil {
+		t.Fatalf("second ListSettings: %v", err)
+	}
+	second[0] = "corrupted"
+
+	third, err := c.ListSettings(context.Background())
+	if err != nil {
+		t.Fatalf("third ListSettings: %v", err)
+	}
+	if !slices.Equal(third, want) {
+		t.Errorf("cache corrupted by caller mutation:\n got %v\nwant %v", third, want)
+	}
+}
